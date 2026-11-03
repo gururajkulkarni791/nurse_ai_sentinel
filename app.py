@@ -16,7 +16,7 @@ st.markdown(
 # Load Data
 @st.cache_data
 def load_data():
-  return pd.read_csv("data/nurses.csv")
+  return pd.read_csv("data/nurses.csv", encoding="latin1")
 
 
 df_nurses = load_data()
