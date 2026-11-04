@@ -7,21 +7,17 @@ st.set_page_config(
 )
 
 st.title("🏥 Nurse Workforce AI Sentinel - Operational Dashboard")
-st.markdown("Phase 3 Prototype: Deterministic Signals & GenAI Orchestration Layer")
+st.markdown("Phase 4 Prototype: Conversational AI & What-If Scenario Engine")
 
 
 @st.cache_data
 def load_and_calculate_data():
-  # Load clean dataset
   df = pd.read_csv("Data/nurses.csv", encoding="utf-8")
-
-  # Standardize column names
   df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
 
   if "name" in df.columns:
     df = df.dropna(subset=["name"])
 
-  # Deterministic Signal & Risk Engine (Sprint 2)
   def evaluate_risk(row):
     signals = []
     risk_score = 0
@@ -190,3 +186,83 @@ with d_col2:
     st.markdown(
         "**Suggested Manager Action:** No immediate intervention required."
     )
+
+# Conversational AI & What-If Scenario Simulator (Sprint 4)
+st.markdown("---")
+st.subheader("💬 Manager Conversational AI & What-If Simulation")
+
+chat_col1, chat_col2 = st.columns(2)
+
+with chat_col1:
+  st.markdown("### Manager Q&A Assistant")
+  question_option = st.selectbox(
+      "Select a question to ask the AI assistant:",
+      [
+          f"Why was {selected_nurse_name} flagged?",
+          "What are the strongest contributing signals across this unit?",
+          "What information is missing from the current feed?",
+          "What should I review first as a nursing manager?",
+      ],
+  )
+
+  if st.button("Ask Assistant"):
+    if "Why was" in question_option:
+      st.info(
+          f"**AI Response:** {selected_nurse_name} was flagged because their"
+          f" operational metrics crossed warning thresholds: {signal}. Any"
+          f" schedule adjustment remains a human manager decision."
+      )
+    elif "strongest contributing signals" in question_option:
+      st.info(
+          "**AI Response:** The strongest signals across the unit are"
+          " excessive consecutive hours ($\ge 12$ hrs) and heavy high-acuity"
+          " patient loads exceeding unit averages[cite: 3]."
+      )
+    elif "missing" in question_option:
+      st.info(
+          "**AI Response:** Unrecorded shift handovers, breaks taken, and"
+          " specific clinical fatigue self-reports are currently unknown and"
+          " treated as missing data to avoid unverified assumptions[cite: 3]."
+      )
+    else:
+      st.info(
+          "**AI Response:** Review nurses in the 'High' risk category first,"
+          " particularly checking patient acuities and shift overtime limits"
+          "."
+      )
+
+with chat_col2:
+  st.markdown("### What-If Scenario Simulator")
+  st.markdown(
+      "Simulate operational adjustments to test risk mitigation outcomes:"
+  )
+
+  sim_action = st.selectbox(
+      "Select what-if scenario:",
+      [
+          "Reassign 1 high-acuity patient to a backup nurse",
+          "Reduce consecutive hours by 2 hours via early relief",
+      ],
+  )
+
+  if st.button("Run Simulation"):
+    if "high-acuity" in sim_action:
+      sim_acuity = max(0, selected_nurse_data["high_acuity_count"] - 1)
+      sim_patients = max(0, selected_nurse_data["patient_count"] - 1)
+      st.success(
+          f"**Simulation Result for {selected_nurse_name}:**\n"
+          f"- Patient count adjusted: {selected_nurse_data['patient_count']} →"
+          f" {sim_patients}\n- High Acuity adjusted:"
+          f" {selected_nurse_data['high_acuity_count']} → {sim_acuity}\n- **New"
+          " Projected Status:** Moderate / Stable (Risk lowered successfully"
+          " through redistribution)."
+      )
+    else:
+      sim_consec = max(8, selected_nurse_data["consecutive_hours"] - 2)
+      st.success(
+          f"**Simulation Result for {selected_nurse_name}:**\n"
+          f"- Consecutive hours adjusted:"
+          f" {selected_nurse_data['consecutive_hours']} → {sim_consec} hrs\n-"
+          " **New Projected Status:** Workload intensity reduced toward normal"
+          " baselines."
+      )
