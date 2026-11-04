@@ -18,8 +18,7 @@ st.info(
     "🛡️ **Safety & Governance Notice:** This system provides operational"
     " decision-support signals only. It does not establish clinical diagnoses,"
     " assess personal safety/competence, or replace human managerial"
-    " review. All schedule or patient reassignments require manager approval"
-    "[cite: 3, 5]."
+    " review. All schedule or patient reassignments require manager approval."
 )
 
 
@@ -178,47 +177,41 @@ with d_col2:
   signal = selected_nurse_data["primary_signal"]
 
   if status == "High":
-    st.error(
-        f"**ATTENTION - {name}**\n\nPotential workload/fatigue signal detected"
-        "[cite: 3]."
-    )
-    st.markdown(f"**Why (Evidence):** {signal}[cite: 3].")
+    st.error(f"**ATTENTION - {name}**\n\nPotential workload/fatigue signal detected.")
+    st.markdown(f"**Why (Evidence):** {signal}.")
     st.markdown(
         "**Fact / Hypothesis Separation:** These data indicate an operational"
         " workload signal; they do not establish that the nurse is fatigued or"
-        " that patient safety has been compromised[cite: 3, 5]."
+        " that patient safety has been compromised."
     )
     st.markdown(
         "**Suggested Manager Corrective Measures:**\n"
         "1. Review current patient allocation and verify if one high-acuity"
-        " patient can be reassigned[cite: 3].\n"
-        "2. Confirm applicable overtime and consecutive shift limits [cite:"
-        " 3].\n"
-        "3. Check relief staffing availability for upcoming shifts[cite: 3]."
+        " patient can be reassigned.\n"
+        "2. Confirm applicable overtime and consecutive shift limits.\n"
+        "3. Check relief staffing availability for upcoming shifts."
     )
   elif status == "Moderate":
     st.warning(
-        f"**NOTICE - {name}**\n\nElevated operational load detected[cite: 3]."
+        f"**NOTICE - {name}**\n\nElevated operational load detected."
     )
-    st.markdown(f"**Why (Evidence):** {signal}[cite: 3].")
+    st.markdown(f"**Why (Evidence):** {signal}.")
     st.markdown(
         "**Fact / Hypothesis Separation:** Moderate threshold reached; monitor"
-        " trajectory over next shift[cite: 3, 5]."
+        " trajectory over next shift."
     )
     st.markdown(
         "**Suggested Manager Corrective Measures:**\n"
-        "1. Monitor shift progression[cite: 3].\n"
-        "2. Ensure scheduled breaks are strictly observed[cite: 3]."
+        "1. Monitor shift progression.\n"
+        "2. Ensure scheduled breaks are strictly observed."
     )
   else:
     st.success(
-        f"**STABLE - {name}**\n\nWithin normal operational parameters [cite:"
-        " 3]."
+        f"**STABLE - {name}**\n\nWithin normal operational parameters."
     )
-    st.markdown(f"**Evidence:** {signal}[cite: 3].")
+    st.markdown(f"**Evidence:** {signal}.")
     st.markdown(
-        "**Suggested Manager Action:** No immediate intervention required"
-        "[cite: 3]."
+        "**Suggested Manager Action:** No immediate intervention required."
     )
 
 # Manager Conversational AI & What-If Simulation (Sprint 4)
@@ -244,25 +237,24 @@ with chat_col1:
       st.info(
           f"**AI Response:** {selected_nurse_name} was flagged because their"
           f" operational metrics crossed warning thresholds: {signal}. Any"
-          f" schedule adjustment remains a human manager decision[cite: 1, 3]."
+          " schedule adjustment remains a human manager decision."
       )
     elif "strongest contributing signals" in question_option:
       st.info(
           "**AI Response:** The strongest signals across the unit are"
           " excessive consecutive hours ($\ge 12$ hrs) and heavy high-acuity"
-          " patient loads exceeding unit averages[cite: 3]."
+          " patient loads exceeding unit averages."
       )
     elif "missing" in question_option:
       st.info(
           "**AI Response:** Unrecorded shift handovers, breaks taken, and"
           " specific clinical fatigue self-reports are currently unknown and"
-          " treated as missing data to avoid unverified assumptions[cite: 3]."
+          " treated as missing data to avoid unverified assumptions."
       )
     else:
       st.info(
           "**AI Response:** Review nurses in the 'High' risk category first,"
-          " particularly checking patient acuities and shift overtime limits"
-          "[cite: 1, 3]."
+          " particularly checking patient acuities and shift overtime limits."
       )
 
 with chat_col2:
@@ -289,7 +281,7 @@ with chat_col2:
           f" {sim_patients}\n- High Acuity adjusted:"
           f" {selected_nurse_data['high_acuity_count']} → {sim_acuity}\n- **New"
           " Projected Status:** Moderate / Stable (Risk lowered successfully"
-          " through redistribution)[cite: 3]."
+          " through redistribution)."
       )
     else:
       sim_consec = max(8, selected_nurse_data["consecutive_hours"] - 2)
@@ -298,7 +290,7 @@ with chat_col2:
           f"- Consecutive hours adjusted:"
           f" {selected_nurse_data['consecutive_hours']} → {sim_consec} hrs\n-"
           " **New Projected Status:** Workload intensity reduced toward normal"
-          " baselines[cite: 3]."
+          " baselines."
       )
 
 # Audit Footer (Sprint 5 Auditability Requirement)
@@ -306,5 +298,4 @@ st.markdown("---")
 st.caption(
     "📌 **Audit & System Trail:** Version 1.0 (Phase 1 Final Prototype) | Data"
     " Engine: Deterministic Python Rules | GenAI Governance Enforcement: Active"
-    "[cite: 4, 5]"
 )
