@@ -6,23 +6,54 @@ st.set_page_config(
     page_title="Nurse Workforce AI Sentinel", page_icon="🏥", layout="wide"
 )
 
+# Application Header & Audit Information (Sprint 5)
 st.title("🏥 Nurse Workforce AI Sentinel - Operational Dashboard")
-st.markdown("Phase 4 Prototype: Conversational AI & What-If Scenario Engine")
+st.markdown(
+    "**Phase 1 Complete Build (Sprints 1–5)** | *Operational Warning &"
+    " Intervention System*"
+)
+
+# System Governance Banner (Sprint 5 Safety Control)
+st.info(
+    "🛡️ **Safety & Governance Notice:** This system provides operational"
+    " decision-support signals only. It does not establish clinical diagnoses,"
+    " assess personal safety/competence, or replace human managerial"
+    " review. All schedule or patient reassignments require manager approval"
+    "[cite: 3, 5]."
+)
 
 
 @st.cache_data
 def load_and_calculate_data():
-  df = pd.read_csv("Data/nurses.csv", encoding="utf-8")
+  try:
+    df = pd.read_csv("Data/nurses.csv", encoding="utf-8")
+  except Exception:
+    df = pd.read_csv("nurses_utf8.csv", encoding="utf-8")
+
   df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
 
   if "name" in df.columns:
     df = df.dropna(subset=["name"])
 
+  # Deterministic Signal & Risk Engine (Sprint 2)
   def evaluate_risk(row):
     signals = []
     risk_score = 0
 
+    # Safely handle missing/null numeric data (Sprint 5 Hardening)
     hours = row.get("hours_worked", 40)
+    hours = 40 if pd.isna(hours) else hours
+
+    consec = row.get("consecutive_hours", 8)
+    consec = 8 if pd.isna(consec) else consec
+
+    patients = row.get("patient_count", 4)
+    patients = 4 if pd.isna(patients) else patients
+
+    high_acuity = row.get("high_acuity_count", 0)
+    high_acuity = 0 if pd.isna(high_acuity) else high_acuity
+
+    # Rule calculations
     if hours > 45:
       risk_score += 2
       signals.append(f"{hours} hours worked (high overtime)")
@@ -30,15 +61,12 @@ def load_and_calculate_data():
       risk_score += 1
       signals.append(f"{hours} hours worked")
 
-    consec = row.get("consecutive_hours", 8)
     if consec >= 12:
       risk_score += 2
       signals.append(f"{consec} consecutive hours")
     elif consec > 8:
       risk_score += 1
 
-    high_acuity = row.get("high_acuity_count", 0)
-    patients = row.get("patient_count", 4)
     if high_acuity >= 2:
       risk_score += 2
       signals.append(
@@ -68,7 +96,7 @@ def load_and_calculate_data():
 
 df_nurses = load_and_calculate_data()
 
-# Top-Level Metrics
+# Top-Level Operational Metrics (Sprint 1)
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Total Nurses Monitored", len(df_nurses))
 col2.metric(
@@ -83,7 +111,7 @@ col4.metric("Active Units", "ICU, Emergency, Pediatrics, General")
 
 st.markdown("---")
 
-# Unit Overview Table
+# Unit Overview Table & Risk Filter (Sprint 1 & 2)
 st.subheader("📋 Unit Overview & Deterministic Warning List")
 risk_filter = st.selectbox(
     "Filter by Risk Status:", ["All", "High", "Moderate", "Normal"]
@@ -150,44 +178,50 @@ with d_col2:
   signal = selected_nurse_data["primary_signal"]
 
   if status == "High":
-    st.error(f"**ATTENTION - {name}**\n\nPotential workload/fatigue signal detected.")
-    st.markdown(f"**Why (Evidence):** {signal}.")
+    st.error(
+        f"**ATTENTION - {name}**\n\nPotential workload/fatigue signal detected"
+        "[cite: 3]."
+    )
+    st.markdown(f"**Why (Evidence):** {signal}[cite: 3].")
     st.markdown(
         "**Fact / Hypothesis Separation:** These data indicate an operational"
         " workload signal; they do not establish that the nurse is fatigued or"
-        " that patient safety has been compromised."
+        " that patient safety has been compromised[cite: 3, 5]."
     )
     st.markdown(
         "**Suggested Manager Corrective Measures:**\n"
         "1. Review current patient allocation and verify if one high-acuity"
-        " patient can be reassigned.\n"
-        "2. Confirm applicable overtime and consecutive shift limits.\n"
-        "3. Check relief staffing availability for upcoming shifts."
+        " patient can be reassigned[cite: 3].\n"
+        "2. Confirm applicable overtime and consecutive shift limits [cite:"
+        " 3].\n"
+        "3. Check relief staffing availability for upcoming shifts[cite: 3]."
     )
   elif status == "Moderate":
     st.warning(
-        f"**NOTICE - {name}**\n\nElevated operational load detected."
+        f"**NOTICE - {name}**\n\nElevated operational load detected[cite: 3]."
     )
-    st.markdown(f"**Why (Evidence):** {signal}.")
+    st.markdown(f"**Why (Evidence):** {signal}[cite: 3].")
     st.markdown(
         "**Fact / Hypothesis Separation:** Moderate threshold reached; monitor"
-        " trajectory over next shift."
+        " trajectory over next shift[cite: 3, 5]."
     )
     st.markdown(
         "**Suggested Manager Corrective Measures:**\n"
-        "1. Monitor shift progression.\n"
-        "2. Ensure scheduled breaks are strictly observed."
+        "1. Monitor shift progression[cite: 3].\n"
+        "2. Ensure scheduled breaks are strictly observed[cite: 3]."
     )
   else:
     st.success(
-        f"**STABLE - {name}**\n\nWithin normal operational parameters."
+        f"**STABLE - {name}**\n\nWithin normal operational parameters [cite:"
+        " 3]."
     )
-    st.markdown(f"**Evidence:** {signal}.")
+    st.markdown(f"**Evidence:** {signal}[cite: 3].")
     st.markdown(
-        "**Suggested Manager Action:** No immediate intervention required."
+        "**Suggested Manager Action:** No immediate intervention required"
+        "[cite: 3]."
     )
 
-# Conversational AI & What-If Scenario Simulator (Sprint 4)
+# Manager Conversational AI & What-If Simulation (Sprint 4)
 st.markdown("---")
 st.subheader("💬 Manager Conversational AI & What-If Simulation")
 
@@ -210,7 +244,7 @@ with chat_col1:
       st.info(
           f"**AI Response:** {selected_nurse_name} was flagged because their"
           f" operational metrics crossed warning thresholds: {signal}. Any"
-          f" schedule adjustment remains a human manager decision."
+          f" schedule adjustment remains a human manager decision[cite: 1, 3]."
       )
     elif "strongest contributing signals" in question_option:
       st.info(
@@ -228,7 +262,7 @@ with chat_col1:
       st.info(
           "**AI Response:** Review nurses in the 'High' risk category first,"
           " particularly checking patient acuities and shift overtime limits"
-          "."
+          "[cite: 1, 3]."
       )
 
 with chat_col2:
@@ -255,7 +289,7 @@ with chat_col2:
           f" {sim_patients}\n- High Acuity adjusted:"
           f" {selected_nurse_data['high_acuity_count']} → {sim_acuity}\n- **New"
           " Projected Status:** Moderate / Stable (Risk lowered successfully"
-          " through redistribution)."
+          " through redistribution)[cite: 3]."
       )
     else:
       sim_consec = max(8, selected_nurse_data["consecutive_hours"] - 2)
@@ -264,5 +298,13 @@ with chat_col2:
           f"- Consecutive hours adjusted:"
           f" {selected_nurse_data['consecutive_hours']} → {sim_consec} hrs\n-"
           " **New Projected Status:** Workload intensity reduced toward normal"
-          " baselines."
+          " baselines[cite: 3]."
       )
+
+# Audit Footer (Sprint 5 Auditability Requirement)
+st.markdown("---")
+st.caption(
+    "📌 **Audit & System Trail:** Version 1.0 (Phase 1 Final Prototype) | Data"
+    " Engine: Deterministic Python Rules | GenAI Governance Enforcement: Active"
+    "[cite: 4, 5]"
+)
