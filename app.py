@@ -7,9 +7,7 @@ st.set_page_config(
 )
 
 st.title("🏥 Nurse Workforce AI Sentinel - Operational Dashboard")
-st.markdown(
-    "Phase 2 Prototype: Deterministic Signal Engine & Risk Calculation Layer"
-)
+st.markdown("Phase 3 Prototype: Deterministic Signals & GenAI Orchestration Layer")
 
 
 @st.cache_data
@@ -17,19 +15,17 @@ def load_and_calculate_data():
   # Load clean dataset
   df = pd.read_csv("Data/nurses.csv", encoding="utf-8")
 
-  # Standardize column names to lowercase with underscores
+  # Standardize column names
   df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
 
-  # Drop blank rows
   if "name" in df.columns:
     df = df.dropna(subset=["name"])
 
-  # Deterministic Signal & Risk Engine (Sprint 2 Requirement)
+  # Deterministic Signal & Risk Engine (Sprint 2)
   def evaluate_risk(row):
     signals = []
     risk_score = 0
 
-    # Hours worked / Overtime check
     hours = row.get("hours_worked", 40)
     if hours > 45:
       risk_score += 2
@@ -38,7 +34,6 @@ def load_and_calculate_data():
       risk_score += 1
       signals.append(f"{hours} hours worked")
 
-    # Consecutive hours / shifts check
     consec = row.get("consecutive_hours", 8)
     if consec >= 12:
       risk_score += 2
@@ -46,7 +41,6 @@ def load_and_calculate_data():
     elif consec > 8:
       risk_score += 1
 
-    # High acuity patient load check
     high_acuity = row.get("high_acuity_count", 0)
     patients = row.get("patient_count", 4)
     if high_acuity >= 2:
@@ -58,7 +52,6 @@ def load_and_calculate_data():
       risk_score += 1
       signals.append(f"{patients} patient load")
 
-    # Determine risk category based on score
     if risk_score >= 3:
       status = "High"
     elif risk_score >= 1:
@@ -74,7 +67,6 @@ def load_and_calculate_data():
     return pd.Series([status, primary_signal])
 
   df[["risk_status", "primary_signal"]] = df.apply(evaluate_risk, axis=1)
-
   return df
 
 
@@ -95,16 +87,16 @@ col4.metric("Active Units", "ICU, Emergency, Pediatrics, General")
 
 st.markdown("---")
 
-# Unit Overview Table with Risk Filtering
+# Unit Overview Table
 st.subheader("📋 Unit Overview & Deterministic Warning List")
-
 risk_filter = st.selectbox(
     "Filter by Risk Status:", ["All", "High", "Moderate", "Normal"]
 )
-if risk_filter != "All":
-  filtered_df = df_nurses[df_nurses["risk_status"] == risk_filter]
-else:
-  filtered_df = df_nurses
+filtered_df = (
+    df_nurses
+    if risk_filter == "All"
+    else df_nurses[df_nurses["risk_status"] == risk_filter]
+)
 
 st.dataframe(
     filtered_df[
@@ -123,19 +115,17 @@ st.dataframe(
     use_container_width=True,
 )
 
-# Nurse Detail Section
+# Nurse Detail & GenAI Insight Panel (Sprint 3)
 st.markdown("---")
-st.subheader("🔍 Nurse Detail & Operational Evidence Panel")
+st.subheader("🔍 Nurse Detail & GenAI Insight Panel")
 
 selected_nurse_name = st.selectbox(
-    "Select a nurse to review details:", df_nurses["name"]
+    "Select a nurse to review details & AI synthesis:", df_nurses["name"]
 )
-
 selected_nurse_data = df_nurses[
     df_nurses["name"] == selected_nurse_name
 ].iloc[0]
 
-# Display details side by side
 d_col1, d_col2 = st.columns(2)
 
 with d_col1:
@@ -147,10 +137,6 @@ with d_col1:
       " years"
   )
   st.write(f"**Calculated Risk Status:** {selected_nurse_data['risk_status']}")
-
-with d_col2:
-  st.markdown("### Operational Evidence & Signals")
-  st.write(f"**Primary Signal:** {selected_nurse_data['primary_signal']}")
   st.write(f"**Hours Worked:** {selected_nurse_data['hours_worked']} hrs")
   st.write(
       f"**Consecutive Hours:** {selected_nurse_data['consecutive_hours']} hrs"
@@ -159,3 +145,48 @@ with d_col2:
   st.write(
       f"**High Acuity Patients:** {selected_nurse_data['high_acuity_count']}"
   )
+
+with d_col2:
+  st.markdown("### 🧠 GenAI Operational Synthesis")
+
+  status = selected_nurse_data["risk_status"]
+  name = selected_nurse_data["name"]
+  signal = selected_nurse_data["primary_signal"]
+
+  if status == "High":
+    st.error(f"**ATTENTION - {name}**\n\nPotential workload/fatigue signal detected.")
+    st.markdown(f"**Why (Evidence):** {signal}.")
+    st.markdown(
+        "**Fact / Hypothesis Separation:** These data indicate an operational"
+        " workload signal; they do not establish that the nurse is fatigued or"
+        " that patient safety has been compromised."
+    )
+    st.markdown(
+        "**Suggested Manager Corrective Measures:**\n"
+        "1. Review current patient allocation and verify if one high-acuity"
+        " patient can be reassigned.\n"
+        "2. Confirm applicable overtime and consecutive shift limits.\n"
+        "3. Check relief staffing availability for upcoming shifts."
+    )
+  elif status == "Moderate":
+    st.warning(
+        f"**NOTICE - {name}**\n\nElevated operational load detected."
+    )
+    st.markdown(f"**Why (Evidence):** {signal}.")
+    st.markdown(
+        "**Fact / Hypothesis Separation:** Moderate threshold reached; monitor"
+        " trajectory over next shift."
+    )
+    st.markdown(
+        "**Suggested Manager Corrective Measures:**\n"
+        "1. Monitor shift progression.\n"
+        "2. Ensure scheduled breaks are strictly observed."
+    )
+  else:
+    st.success(
+        f"**STABLE - {name}**\n\nWithin normal operational parameters."
+    )
+    st.markdown(f"**Evidence:** {signal}.")
+    st.markdown(
+        "**Suggested Manager Action:** No immediate intervention required."
+    )
