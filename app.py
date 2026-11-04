@@ -8,14 +8,13 @@ st.set_page_config(
 
 st.title("🏥 Nurse Workforce AI Sentinel - Operational Dashboard")
 st.markdown(
-    "Phase 1 Prototype: Monitoring nurse workload, fatigue indicators, and AI"
-    " warning signals."
+    "Phase 2 Prototype: Deterministic Signal Engine & Risk Calculation Layer"
 )
 
 
 @st.cache_data
-def load_data():
-  # Clean CSV loading now works perfectly
+def load_and_calculate_data():
+  # Load clean dataset
   df = pd.read_csv("Data/nurses.csv", encoding="utf-8")
 
   # Standardize column names to lowercase with underscores
@@ -25,42 +24,108 @@ def load_data():
   if "name" in df.columns:
     df = df.dropna(subset=["name"])
 
-  # Safety fallback defaults
-  defaults = {
-      "risk_status": "Normal",
-      "role": "Nurse",
-      "unit": "General",
-      "hours_worked": 0,
-      "consecutive_hours": 0,
-      "patient_count": 0,
-      "high_acuity_count": 0,
-  }
-  for col, val in defaults.items():
-    if col not in df.columns:
-      df[col] = val
+  # Deterministic Signal & Risk Engine (Sprint 2 Requirement)
+  def evaluate_risk(row):
+    signals = []
+    risk_score = 0
+
+    # Hours worked / Overtime check
+    hours = row.get("hours_worked", 40)
+    if hours > 45:
+      risk_score += 2
+      signals.append(f"{hours} hours worked (high overtime)")
+    elif hours > 40:
+      risk_score += 1
+      signals.append(f"{hours} hours worked")
+
+    # Consecutive hours / shifts check
+    consec = row.get("consecutive_hours", 8)
+    if consec >= 12:
+      risk_score += 2
+      signals.append(f"{consec} consecutive hours")
+    elif consec > 8:
+      risk_score += 1
+
+    # High acuity patient load check
+    high_acuity = row.get("high_acuity_count", 0)
+    patients = row.get("patient_count", 4)
+    if high_acuity >= 2:
+      risk_score += 2
+      signals.append(
+          f"{patients} patients including {high_acuity} high-acuity"
+      )
+    elif patients > 5:
+      risk_score += 1
+      signals.append(f"{patients} patient load")
+
+    # Determine risk category based on score
+    if risk_score >= 3:
+      status = "High"
+    elif risk_score >= 1:
+      status = "Moderate"
+    else:
+      status = "Normal"
+
+    primary_signal = (
+        ", ".join(signals)
+        if signals
+        else "Within normal operational parameters"
+    )
+    return pd.Series([status, primary_signal])
+
+  df[["risk_status", "primary_signal"]] = df.apply(evaluate_risk, axis=1)
 
   return df
 
 
-df_nurses = load_data()
+df_nurses = load_and_calculate_data()
 
 # Top-Level Metrics
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 col1.metric("Total Nurses Monitored", len(df_nurses))
 col2.metric(
-    "High Risk Warnings", len(df_nurses[df_nurses["risk_status"] == "High"])
+    "High Risk Warnings",
+    len(df_nurses[df_nurses["risk_status"] == "High"]),
+    delta_color="inverse",
 )
-col3.metric("Active Units", "ICU, Emergency, Pediatrics, General")
+col3.metric(
+    "Moderate Risk", len(df_nurses[df_nurses["risk_status"] == "Moderate"])
+)
+col4.metric("Active Units", "ICU, Emergency, Pediatrics, General")
 
 st.markdown("---")
 
-# Unit Overview Table
-st.subheader("📋 Unit Overview & Nurse Warning List")
-st.dataframe(df_nurses, use_container_width=True)
+# Unit Overview Table with Risk Filtering
+st.subheader("📋 Unit Overview & Deterministic Warning List")
+
+risk_filter = st.selectbox(
+    "Filter by Risk Status:", ["All", "High", "Moderate", "Normal"]
+)
+if risk_filter != "All":
+  filtered_df = df_nurses[df_nurses["risk_status"] == risk_filter]
+else:
+  filtered_df = df_nurses
+
+st.dataframe(
+    filtered_df[
+        [
+            "name",
+            "role",
+            "unit",
+            "hours_worked",
+            "consecutive_hours",
+            "patient_count",
+            "high_acuity_count",
+            "risk_status",
+            "primary_signal",
+        ]
+    ],
+    use_container_width=True,
+)
 
 # Nurse Detail Section
 st.markdown("---")
-st.subheader("🔍 Nurse Detail & AI Insight Panel")
+st.subheader("🔍 Nurse Detail & Operational Evidence Panel")
 
 selected_nurse_name = st.selectbox(
     "Select a nurse to review details:", df_nurses["name"]
@@ -81,10 +146,11 @@ with d_col1:
       f"**Experience:** {selected_nurse_data.get('experience_years', 'N/A')}"
       " years"
   )
-  st.write(f"**Risk Status:** {selected_nurse_data['risk_status']}")
+  st.write(f"**Calculated Risk Status:** {selected_nurse_data['risk_status']}")
 
 with d_col2:
-  st.markdown("### Operational Metrics")
+  st.markdown("### Operational Evidence & Signals")
+  st.write(f"**Primary Signal:** {selected_nurse_data['primary_signal']}")
   st.write(f"**Hours Worked:** {selected_nurse_data['hours_worked']} hrs")
   st.write(
       f"**Consecutive Hours:** {selected_nurse_data['consecutive_hours']} hrs"
